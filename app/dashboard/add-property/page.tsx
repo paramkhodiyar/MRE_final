@@ -6,6 +6,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AddPropertyPage() {
   const [formData, setFormData] = useState({
@@ -22,18 +23,18 @@ export default function AddPropertyPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('authToken');
-    const role = localStorage.getItem('userRole');
-    
-    if (!token || role !== 'admin') {
-      router.push('/login');
-      return;
+    // Check authentication and role
+    if (!loading) {
+      if (!user || user.role !== 'admin') {
+        router.push('/login');
+        return;
+      }
     }
-  }, [router]);
+  }, [user, loading, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -91,6 +92,25 @@ export default function AddPropertyPage() {
   const propertyTypes = [
     'Apartment', 'Villa', 'House', 'Penthouse', 'Cottage', 'Suite'
   ];
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Don't render if not admin
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
 
   if (isSuccess) {
     return (

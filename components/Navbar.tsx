@@ -4,62 +4,19 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Home, Menu, X, User, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<string>('');
-  const [userName, setUserName] = useState<string>('');
+  const { user, logout } = useAuth();
   const router = useRouter();
 
-  // Function to check auth state
-  const checkAuthState = () => {
-    const token = localStorage.getItem('authToken');
-    const role = localStorage.getItem('userRole');
-    const name = localStorage.getItem('userName');
-    
-    if (token) {
-      setIsLoggedIn(true);
-      setUserRole(role || '');
-      setUserName(name || role || 'User'); // Fallback to role if no name
-    } else {
-      setIsLoggedIn(false);
-      setUserRole('');
-      setUserName('');
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
     }
-  };
-
-  useEffect(() => {
-    checkAuthState();
-
-    // Listen for storage changes (when login happens in another tab/window)
-    const handleStorageChange = () => {
-      checkAuthState();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Listen for custom login events
-    const handleLoginEvent = () => {
-      checkAuthState();
-    };
-
-    window.addEventListener('userLoggedIn', handleLoginEvent);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('userLoggedIn', handleLoginEvent);
-    };
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userName');
-    setIsLoggedIn(false);
-    setUserRole('');
-    setUserName('');
-    router.push('/');
   };
 
   return (
@@ -86,15 +43,15 @@ export function Navbar() {
             <Link href="/contact" className="text-gray-700 hover:text-amber-600 transition-colors">
               Contact
             </Link>
-            {isLoggedIn ? (
+            {user ? (
               <div className="flex items-center space-x-4">
                 {/* User greeting */}
                 <span className="text-gray-700 flex items-center space-x-1">
                   <User className="w-4 h-4" />
-                  <span>Hi, {userName}</span>
+                  <span>Hi, {user.displayName || user.role}</span>
                 </span>
                 
-                {userRole === 'admin' && (
+                {user.role === 'admin' && (
                   <Link 
                     href="/dashboard" 
                     className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors"
@@ -161,18 +118,18 @@ export function Navbar() {
               >
                 Contact
               </Link>
-              {isLoggedIn ? (
+              {user ? (
                 <div className="space-y-1">
                   {/* Mobile user greeting */}
                   <div className="px-3 py-2 text-gray-700 flex items-center space-x-1">
                     <User className="w-4 h-4" />
-                    <span>Hi, {userName}</span>
+                    <span>Hi, {user.displayName || user.role}</span>
                   </div>
                   
-                  {userRole === 'admin' && (
+                  {user.role === 'admin' && (
                     <Link 
                       href="/dashboard" 
-                      className="block px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+                      className="block px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors mx-3"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Dashboard
@@ -191,7 +148,7 @@ export function Navbar() {
               ) : (
                 <Link 
                   href="/login" 
-                  className="block px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+                  className="block px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors mx-3"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Login
