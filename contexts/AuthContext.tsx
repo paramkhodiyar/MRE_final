@@ -1,15 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  User,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  createUserWithEmailAndPassword
-} from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 export type UserRole = 'admin' | 'visitor';
 
@@ -25,7 +17,6 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (email: string, password: string, role: UserRole) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,92 +29,107 @@ export const useAuth = () => {
   return context;
 };
 
+// Demo user credentials
+const DEMO_USERS = {
+  'admin@mayarealestate.com': {
+    password: 'admin123',
+    role: 'admin' as UserRole,
+    displayName: 'Admin User'
+  },
+  'visitor@mayarealestate.com': {
+    password: 'visitor123',
+    role: 'visitor' as UserRole,
+    displayName: 'Visitor User'
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        // Get user role from Firestore
-        try {
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
-          const userDoc = await getDoc(userDocRef);
-          
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              role: userData.role || 'visitor',
-              displayName: firebaseUser.displayName || undefined
-            });
-          } else {
-            // If user document doesn't exist, create one with visitor role
-            const newUserData = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              role: 'visitor' as UserRole,
-              displayName: firebaseUser.displayName || undefined
-            };
-            
-            await setDoc(userDocRef, {
-              email: firebaseUser.email,
-              role: 'visitor',
-              displayName: firebaseUser.displayName,
-              createdAt: new Date()
-            });
-            
-            setUser(newUserData);
-          }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          setUser(null);
-        }
-      } else {
-        setUser(null);
+    // Check if user is already logged in
+    const checkAuthState = () => {
+      const token = localStorage.getItem('authToken');
+      const userRole = localStorage.getItem('userRole');
+      const userEmail = localStorage.getItem('userEmail');
+      const userName = localStorage.getItem('userName');
+      
+      if (token && userRole && userEmail) {
+        setUser({
+          uid: token,
+          email: userEmail,
+          role: userRole as UserRole,
+          displayName: userName || undefined
+        });
       }
       setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    checkAuthState();
   }, []);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
+    
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // Check demo credentials
+      const demoUser = DEMO_USERS[email as keyof typeof DEMO_USERS];
+      
+      if (!demoUser || demoUser.password !== password) {
+        throw new Error('Invalid email or password');
+      }
+
+      // Create user data
+      const userData: UserData = {
+        uid: `demo-${Date.now()}`,
+        email: email,
+        role: demoUser.role,
+        displayName: demoUser.displayName
+      };
+
+      // Store in localStorage
+      localStorage.setItem('authToken', userData.uid);
+      localStorage.setItem('userRole', userData.role);
+      localStorage.setItem('userEmail', userData.email);
+      localStorage.setItem('userName', userData.displayName || '');
+
+      setUser(userData);
+
+      // Dispatch custom event for navbar to listen
+      window.dispatchEvent(new Event('userLoggedIn'));
+
+      // Redirect based on role
+      if (userData.role === 'admin') {
+        router.push('/dashboard');
+      } else {
+        router.push('/');
+      }
+
     } catch (error) {
       setLoading(false);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const logout = async () => {
     try {
-      await signOut(auth);
+      // Clear localStorage
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userName');
+
       setUser(null);
+      
+      // Dispatch custom event for navbar to listen
+      window.dispatchEvent(new Event('userLoggedOut'));
+      
+      router.push('/');
     } catch (error) {
-      throw error;
-    }
-  };
-
-  const register = async (email: string, password: string, role: UserRole) => {
-    setLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
-
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', firebaseUser.uid), {
-        email: firebaseUser.email,
-        role: role,
-        displayName: firebaseUser.displayName,
-        createdAt: new Date()
-      });
-
-    } catch (error) {
-      setLoading(false);
       throw error;
     }
   };
@@ -132,8 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     loading,
     login,
-    logout,
-    register
+    logout
   };
 
   return (

@@ -8,27 +8,28 @@ import { Property } from '@/types/property';
 import { mockProperties } from '@/data/mockProperties';
 import { Plus, Edit, Trash2, Eye, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function DashboardPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('authToken');
-    const role = localStorage.getItem('userRole');
-    
-    if (!token || role !== 'admin') {
-      router.push('/login');
-      return;
-    }
+    // Check authentication and role
+    if (!loading) {
+      if (!user || user.role !== 'admin') {
+        router.push('/login');
+        return;
+      }
 
-    // Load properties
-    setProperties(mockProperties);
-    setIsLoading(false);
-  }, [router]);
+      // Load properties
+      setProperties(mockProperties);
+      setIsLoading(false);
+    }
+  }, [user, loading, router]);
 
   const handleDelete = (id: string) => {
     setProperties(properties.filter(p => p.id !== id));
@@ -70,16 +71,23 @@ export default function DashboardPage() {
     }
   };
 
-  if (isLoading) {
+  // Show loading while checking auth
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading dashboard...</p>
         </div>
         <Footer />
       </div>
     );
+  }
+
+  // Don't render if not admin
+  if (!user || user.role !== 'admin') {
+    return null;
   }
 
   return (
