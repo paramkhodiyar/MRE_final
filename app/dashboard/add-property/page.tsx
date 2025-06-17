@@ -93,23 +93,14 @@ export default function AddPropertyPage() {
     setIsSubmitting(true);
 
     try {
-      // Convert images to base64 or use stock images if no images uploaded
-      let imageUrls: string[] = [];
-      
-      if (selectedImages.length > 0) {
-        // Convert uploaded images to base64 URLs for demo purposes
-        imageUrls = imagePreviewUrls;
-      } else {
-        // Use stock images as fallback
-        const stockImages = [
-          'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
-          'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
-          'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg',
-          'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
-          'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg'
-        ];
-        imageUrls = stockImages.slice(0, 3);
-      }
+      // Always use stock images to avoid localStorage quota issues
+      const stockImages = [
+        'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
+        'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
+        'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg',
+        'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
+        'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg'
+      ];
 
       const propertyData = {
         title: formData.title,
@@ -122,8 +113,8 @@ export default function AddPropertyPage() {
         type: formData.type,
         amenities: formData.amenities,
         tags: formData.tags,
-        image: imageUrls[0], // First image as main image
-        images: imageUrls
+        image: stockImages[0], // First stock image as main image
+        images: stockImages.slice(0, 3) // Use first 3 stock images
       };
 
       await addProperty(propertyData);
