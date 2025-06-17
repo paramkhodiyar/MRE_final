@@ -88,19 +88,51 @@ export default function AddPropertyPage() {
     });
   };
 
+  // Function to compress and resize images
+  const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate new dimensions
+        const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Always use stock images to avoid localStorage quota issues
-      const stockImages = [
-        'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
-        'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
-        'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg',
-        'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
-        'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg'
-      ];
+      let finalImages: string[] = [];
+
+      if (selectedImages.length > 0) {
+        // Compress uploaded images to reduce storage size
+        const compressedImages = await Promise.all(
+          selectedImages.map(file => compressImage(file, 600, 0.6))
+        );
+        finalImages = compressedImages;
+      } else {
+        // Use stock images if no images uploaded
+        const stockImages = [
+          'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
+          'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
+          'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg'
+        ];
+        finalImages = stockImages;
+      }
 
       const propertyData = {
         title: formData.title,
@@ -113,8 +145,8 @@ export default function AddPropertyPage() {
         type: formData.type,
         amenities: formData.amenities,
         tags: formData.tags,
-        image: stockImages[0], // First stock image as main image
-        images: stockImages.slice(0, 3) // Use first 3 stock images
+        image: finalImages[0], // First image as main image
+        images: finalImages // All images for gallery
       };
 
       await addProperty(propertyData);
@@ -369,7 +401,7 @@ export default function AddPropertyPage() {
                   <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <p className="text-gray-600 mb-2">Click to upload property images</p>
                   <p className="text-sm text-gray-500">
-                    Upload up to 10 images. Supported formats: JPG, PNG, WebP
+                    Upload up to 10 images. Images will be compressed for optimal storage.
                   </p>
                 </label>
               </div>

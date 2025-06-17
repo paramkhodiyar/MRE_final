@@ -24,6 +24,23 @@ export const useProperties = () => {
   return context;
 };
 
+// Helper function to estimate storage size
+const getStorageSize = (data: string): number => {
+  return new Blob([data]).size;
+};
+
+// Helper function to check available storage
+const checkStorageQuota = (newData: string): boolean => {
+  try {
+    const testKey = 'storage_test';
+    localStorage.setItem(testKey, newData);
+    localStorage.removeItem(testKey);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 export const PropertyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,16 +57,21 @@ export const PropertyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           // Initialize with mock data and save to localStorage
           const propertiesWithDates = mockProperties.map(property => ({
             ...property,
-            publishedAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+            publishedAt: property.publishedAt || new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
           }));
           setProperties(propertiesWithDates);
-          localStorage.setItem('maya_properties', JSON.stringify(propertiesWithDates));
+          
+          // Try to save to localStorage
+          const dataToSave = JSON.stringify(propertiesWithDates);
+          if (checkStorageQuota(dataToSave)) {
+            localStorage.setItem('maya_properties', dataToSave);
+          }
         }
       } catch (error) {
         console.error('Error loading properties:', error);
         setProperties(mockProperties.map(property => ({
           ...property,
-          publishedAt: new Date().toISOString()
+          publishedAt: property.publishedAt || new Date().toISOString()
         })));
       } finally {
         setLoading(false);
@@ -61,10 +83,45 @@ export const PropertyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const saveProperties = (newProperties: Property[]) => {
     try {
-      localStorage.setItem('maya_properties', JSON.stringify(newProperties));
-      setProperties(newProperties);
+      const dataToSave = JSON.stringify(newProperties);
+      
+      // Check if the data will fit in localStorage
+      if (!checkStorageQuota(dataToSave)) {
+        // If storage is full, try to clean up old properties or compress data
+        console.warn('Storage quota exceeded. Attempting to optimize...');
+        
+        // Sort by date and keep only the most recent properties if needed
+        const sortedProperties = newProperties.sort((a, b) => 
+          new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+        );
+        
+        // Try with fewer properties if needed
+        let optimizedProperties = sortedProperties;
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (!checkStorageQuota(JSON.stringify(optimizedProperties)) && attempts < maxAttempts) {
+          // Remove oldest properties
+          optimizedProperties = optimizedProperties.slice(0, Math.floor(optimizedProperties.length * 0.8));
+          attempts++;
+        }
+        
+        if (checkStorageQuota(JSON.stringify(optimizedProperties))) {
+          localStorage.setItem('maya_properties', JSON.stringify(optimizedProperties));
+          setProperties(optimizedProperties);
+          console.log(`Optimized storage: kept ${optimizedProperties.length} of ${newProperties.length} properties`);
+        } else {
+          throw new Error('Unable to save properties: storage quota exceeded');
+        }
+      } else {
+        localStorage.setItem('maya_properties', dataToSave);
+        setProperties(newProperties);
+      }
     } catch (error) {
       console.error('Error saving properties:', error);
+      // Still update the state even if localStorage fails
+      setProperties(newProperties);
+      throw error;
     }
   };
 
