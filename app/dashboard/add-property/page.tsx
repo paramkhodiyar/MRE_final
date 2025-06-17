@@ -7,6 +7,7 @@ import { Footer } from '@/components/Footer';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProperties } from '@/contexts/PropertyContext';
 
 export default function AddPropertyPage() {
   const [formData, setFormData] = useState({
@@ -24,6 +25,7 @@ export default function AddPropertyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { user, loading } = useAuth();
+  const { addProperty } = useProperties();
   const router = useRouter();
 
   useEffect(() => {
@@ -65,14 +67,41 @@ export default function AddPropertyPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Create property data with stock images
+      const stockImages = [
+        'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
+        'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
+        'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg',
+        'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
+        'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg'
+      ];
+
+      const propertyData = {
+        title: formData.title,
+        price: parseInt(formData.price),
+        location: formData.location,
+        description: formData.description,
+        bedrooms: parseInt(formData.bedrooms),
+        bathrooms: parseInt(formData.bathrooms),
+        area: parseInt(formData.area),
+        type: formData.type,
+        amenities: formData.amenities,
+        tags: formData.tags,
+        image: stockImages[Math.floor(Math.random() * stockImages.length)],
+        images: stockImages.slice(0, 3) // Use first 3 images
+      };
+
+      await addProperty(propertyData);
       setIsSuccess(true);
+      
       setTimeout(() => {
         router.push('/dashboard');
       }, 2000);
-    }, 1500);
+    } catch (error) {
+      console.error('Error adding property:', error);
+      setIsSubmitting(false);
+    }
   };
 
   const availableAmenities = [

@@ -12,4 +12,5 @@ export interface Property {
   type: string;
   amenities: string[];
   images: string[];
+  publishedAt: string; // ISO date string
 }

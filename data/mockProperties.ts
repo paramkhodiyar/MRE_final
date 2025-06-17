@@ -18,7 +18,8 @@ export const mockProperties: Property[] = [
       'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
       'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
       'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg'
-    ]
+    ],
+    publishedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
   },
   {
     id: '2',
@@ -37,7 +38,8 @@ export const mockProperties: Property[] = [
       'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
       'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg',
       'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg'
-    ]
+    ],
+    publishedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString() // 14 days ago
   },
   {
     id: '3',
@@ -56,7 +58,8 @@ export const mockProperties: Property[] = [
       'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg',
       'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
       'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg'
-    ]
+    ],
+    publishedAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString() // 21 days ago
   },
   {
     id: '4',
@@ -75,7 +78,8 @@ export const mockProperties: Property[] = [
       'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
       'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
       'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg'
-    ]
+    ],
+    publishedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days ago
   },
   {
     id: '5',
@@ -94,7 +98,8 @@ export const mockProperties: Property[] = [
       'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg',
       'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
       'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg'
-    ]
+    ],
+    publishedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() // 10 days ago
   },
   {
     id: '6',
@@ -113,6 +118,7 @@ export const mockProperties: Property[] = [
       'https://images.pexels.com/photos/2724749/pexels-photo-2724749.jpeg',
       'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
       'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg'
-    ]
+    ],
+    publishedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days ago
   }
 ];

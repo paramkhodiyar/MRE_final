@@ -5,35 +5,34 @@ import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Property } from '@/types/property';
-import { mockProperties } from '@/data/mockProperties';
-import { Plus, Edit, Trash2, Eye, MapPin } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, MapPin, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProperties } from '@/contexts/PropertyContext';
 
 export default function DashboardPage() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { properties, loading: propertiesLoading, deleteProperty } = useProperties();
   const router = useRouter();
 
   useEffect(() => {
     // Check authentication and role
-    if (!loading) {
+    if (!authLoading) {
       if (!user || user.role !== 'admin') {
         router.push('/login');
         return;
       }
-
-      // Load properties
-      setProperties(mockProperties);
-      setIsLoading(false);
     }
-  }, [user, loading, router]);
+  }, [user, authLoading, router]);
 
-  const handleDelete = (id: string) => {
-    setProperties(properties.filter(p => p.id !== id));
-    setDeleteConfirm(null);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteProperty(id);
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting property:', error);
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -43,6 +42,14 @@ export default function DashboardPage() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   const getTagStyle = (tag: string) => {
@@ -71,8 +78,8 @@ export default function DashboardPage() {
     }
   };
 
-  // Show loading while checking auth
-  if (loading || isLoading) {
+  // Show loading while checking auth or loading properties
+  if (authLoading || propertiesLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -89,6 +96,11 @@ export default function DashboardPage() {
   if (!user || user.role !== 'admin') {
     return null;
   }
+
+  // Sort properties by published date (newest first)
+  const sortedProperties = [...properties].sort((a, b) => 
+    new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -142,100 +154,126 @@ export default function DashboardPage() {
             <h2 className="text-xl font-semibold text-gray-900">Property Listings</h2>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Property
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {properties.map((property) => (
-                  <tr key={property.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <img
-                          className="h-12 w-12 rounded-lg object-cover"
-                          src={property.image}
-                          alt={property.title}
-                        />
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {property.title}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {property.type} • {property.bedrooms} beds • {property.bathrooms} baths
+          {properties.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Plus className="w-16 h-16 mx-auto mb-4" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Properties Yet</h3>
+              <p className="text-gray-600 mb-4">Start by adding your first property listing.</p>
+              <Link
+                href="/dashboard/add-property"
+                className="bg-amber-600 text-white px-6 py-3 rounded-lg hover:bg-amber-700 transition-colors inline-flex items-center space-x-2"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Add First Property</span>
+              </Link>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Property
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Price
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Published
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {sortedProperties.map((property) => (
+                    <tr key={property.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <img
+                            className="h-12 w-12 rounded-lg object-cover"
+                            src={property.image}
+                            alt={property.title}
+                          />
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {property.title}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {property.type} • {property.bedrooms} beds • {property.bathrooms} baths
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <MapPin className="w-4 h-4 mr-1 text-gray-400" />
-                        {property.location}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {formatPrice(property.price)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-wrap gap-1">
-                        {property.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getTagStyle(tag)}`}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <MapPin className="w-4 h-4 mr-1 text-gray-400" />
+                          {property.location}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {formatPrice(property.price)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          {formatDate(property.publishedAt)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-wrap gap-1">
+                          {property.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${getTagStyle(tag)}`}
+                            >
+                              {getTagText(tag)}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <Link
+                            href={`/property/${property.id}`}
+                            className="text-blue-600 hover:text-blue-900 p-1"
+                            title="View Property"
                           >
-                            {getTagText(tag)}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <Link
-                          href={`/property/${property.id}`}
-                          className="text-blue-600 hover:text-blue-900 p-1"
-                          title="View Property"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
-                        <button
-                          onClick={() => console.log('Edit', property.id)}
-                          className="text-indigo-600 hover:text-indigo-900 p-1"
-                          title="Edit Property"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(property.id)}
-                          className="text-red-600 hover:text-red-900 p-1"
-                          title="Delete Property"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                          <button
+                            onClick={() => console.log('Edit', property.id)}
+                            className="text-indigo-600 hover:text-indigo-900 p-1"
+                            title="Edit Property"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(property.id)}
+                            className="text-red-600 hover:text-red-900 p-1"
+                            title="Delete Property"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
 

@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { Property } from '@/types/property';
-import { mockProperties } from '@/data/mockProperties';
 import { Search, Filter, MapPin, Bed, Bath, Square, X, Send, Eye } from 'lucide-react';
+import { useProperties } from '@/contexts/PropertyContext';
 
 export default function PropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>([]);
+  const { properties, loading } = useProperties();
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [searchFilters, setSearchFilters] = useState({
     location: '',
@@ -30,9 +30,8 @@ export default function PropertiesPage() {
   const [isEnquirySubmitted, setIsEnquirySubmitted] = useState(false);
 
   useEffect(() => {
-    setProperties(mockProperties);
-    setFilteredProperties(mockProperties);
-  }, []);
+    setFilteredProperties(properties);
+  }, [properties]);
 
   useEffect(() => {
     let filtered = properties;
@@ -176,6 +175,19 @@ export default function PropertiesPage() {
 
   const uniqueLocations = [...new Set(properties.map(p => p.location.split(',')[0].trim()))];
   const uniqueTypes = [...new Set(properties.map(p => p.type))];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading properties...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

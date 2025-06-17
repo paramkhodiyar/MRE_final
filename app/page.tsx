@@ -5,18 +5,12 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { PropertyCard } from '@/components/PropertyCard';
 import { Property } from '@/types/property';
-import { mockProperties } from '@/data/mockProperties';
+import { useProperties } from '@/contexts/PropertyContext';
 
 export default function HomePage() {
-  const [properties, setProperties] = useState<Property[]>([]);
+  const { properties, loading } = useProperties();
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [selectedTag, setSelectedTag] = useState<string>('all');
-
-  useEffect(() => {
-    // Simulate API call
-    setProperties(mockProperties);
-    setFilteredProperties(mockProperties);
-  }, []);
 
   useEffect(() => {
     if (selectedTag === 'all') {
@@ -29,6 +23,19 @@ export default function HomePage() {
   }, [selectedTag, properties]);
 
   const tags = ['all', 'new', 'fast-filling', 'sold-out', 'trending'];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading properties...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
