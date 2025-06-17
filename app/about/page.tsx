@@ -15,7 +15,7 @@ export default function AboutPage() {
           <h1 className="text-4xl font-bold text-gray-900 mb-4">About Maya Real Estate</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Your trusted partner in finding the perfect home in Chhattisgarh. 
-            We've been serving the community for over a decade with integrity and excellence.
+            We&apos;ve been serving the community for over a decade with integrity and excellence.
           </p>
         </div>
       </section>
@@ -29,11 +29,11 @@ export default function AboutPage() {
               <p className="text-gray-600 mb-6 leading-relaxed">
                 Maya Real Estate was founded with a simple mission: to help people find their dream homes 
                 in the beautiful state of Chhattisgarh. What started as a small local business has grown 
-                into one of the region's most trusted real estate agencies.
+                into one of the region&apos;s most trusted real estate agencies.
               </p>
               <p className="text-gray-600 mb-6 leading-relaxed">
-                We understand that buying or selling a home is one of life's most important decisions. 
-                That's why we're committed to providing personalized service, expert guidance, and 
+                We understand that buying or selling a home is one of life&apos;s most important decisions. 
+                That&apos;s why we&apos;re committed to providing personalized service, expert guidance, and 
                 transparent communication throughout your real estate journey.
               </p>
               <p className="text-gray-600 leading-relaxed">
@@ -58,7 +58,7 @@ export default function AboutPage() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Achievements</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Over the years, we've built a strong reputation in the Chhattisgarh real estate market.
+              Over the years, we&apos;ve built a strong reputation in the Chhattisgarh real estate market.
             </p>
           </div>
           
@@ -128,7 +128,7 @@ export default function AboutPage() {
               <div className="bg-white p-8 rounded-lg shadow-md">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">Community</h3>
                 <p className="text-gray-600">
-                  We're proud to be part of the Chhattisgarh community and 
+                  We&apos;re proud to be part of the Chhattisgarh community and 
                   committed to its growth and development.
                 </p>
               </div>
