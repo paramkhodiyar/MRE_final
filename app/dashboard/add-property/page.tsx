@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
-import { ArrowLeft, Upload, X } from 'lucide-react';
+import { ArrowLeft, Upload, X, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProperties } from '@/contexts/PropertyContext';
@@ -22,6 +22,8 @@ export default function AddPropertyPage() {
     amenities: [] as string[],
     tags: [] as string[]
   });
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { user, loading } = useAuth();
@@ -43,6 +45,29 @@ export default function AddPropertyPage() {
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Limit to 10 images
+    const limitedFiles = files.slice(0, 10);
+    setSelectedImages(prev => [...prev, ...limitedFiles].slice(0, 10));
+
+    // Create preview URLs
+    limitedFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreviewUrls(prev => [...prev, e.target?.result as string].slice(0, 10));
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleAmenityToggle = (amenity: string) => {
@@ -68,14 +93,23 @@ export default function AddPropertyPage() {
     setIsSubmitting(true);
 
     try {
-      // Create property data with stock images
-      const stockImages = [
-        'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
-        'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
-        'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg',
-        'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
-        'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg'
-      ];
+      // Convert images to base64 or use stock images if no images uploaded
+      let imageUrls: string[] = [];
+      
+      if (selectedImages.length > 0) {
+        // Convert uploaded images to base64 URLs for demo purposes
+        imageUrls = imagePreviewUrls;
+      } else {
+        // Use stock images as fallback
+        const stockImages = [
+          'https://images.pexels.com/photos/280222/pexels-photo-280222.jpeg',
+          'https://images.pexels.com/photos/1643383/pexels-photo-1643383.jpeg',
+          'https://images.pexels.com/photos/2635038/pexels-photo-2635038.jpeg',
+          'https://images.pexels.com/photos/106399/pexels-photo-106399.jpeg',
+          'https://images.pexels.com/photos/1396122/pexels-photo-1396122.jpeg'
+        ];
+        imageUrls = stockImages.slice(0, 3);
+      }
 
       const propertyData = {
         title: formData.title,
@@ -88,8 +122,8 @@ export default function AddPropertyPage() {
         type: formData.type,
         amenities: formData.amenities,
         tags: formData.tags,
-        image: stockImages[Math.floor(Math.random() * stockImages.length)],
-        images: stockImages.slice(0, 3) // Use first 3 images
+        image: imageUrls[0], // First image as main image
+        images: imageUrls
       };
 
       await addProperty(propertyData);
@@ -119,7 +153,7 @@ export default function AddPropertyPage() {
   ];
 
   const propertyTypes = [
-    'Apartment', 'Villa', 'House', 'Penthouse', 'Cottage', 'Suite'
+    'Apartment', 'Villa', 'House', 'Penthouse', 'Cottage', 'Suite', 'Plot'
   ];
 
   // Show loading while checking auth
@@ -283,7 +317,7 @@ export default function AddPropertyPage() {
                   value={formData.bedrooms}
                   onChange={handleChange}
                   required
-                  min="1"
+                  min="0"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent"
                   placeholder="Number of bedrooms"
                 />
@@ -300,7 +334,7 @@ export default function AddPropertyPage() {
                   value={formData.bathrooms}
                   onChange={handleChange}
                   required
-                  min="1"
+                  min="0"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-600 focus:border-transparent"
                   placeholder="Number of bathrooms"
                 />
@@ -322,6 +356,70 @@ export default function AddPropertyPage() {
                   placeholder="Area in square feet"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Property Images */}
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Property Images</h2>
+            
+            <div className="space-y-4">
+              {/* Upload Area */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-amber-400 transition-colors">
+                <input
+                  type="file"
+                  id="images"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <label htmlFor="images" className="cursor-pointer">
+                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Click to upload property images</p>
+                  <p className="text-sm text-gray-500">
+                    Upload up to 10 images. Supported formats: JPG, PNG, WebP
+                  </p>
+                </label>
+              </div>
+
+              {/* Image Previews */}
+              {imagePreviewUrls.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {imagePreviewUrls.map((url, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={url}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      {index === 0 && (
+                        <div className="absolute bottom-2 left-2 bg-amber-600 text-white text-xs px-2 py-1 rounded">
+                          Main Image
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {imagePreviewUrls.length === 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <ImageIcon className="w-5 h-5 text-blue-600 mr-2" />
+                    <p className="text-blue-800 text-sm">
+                      No images uploaded. Stock images will be used for the property listing.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -363,17 +461,6 @@ export default function AddPropertyPage() {
                   {tag.label}
                 </button>
               ))}
-            </div>
-          </div>
-
-          {/* Image Upload Placeholder */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Property Images</h2>
-            
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">Image upload will be implemented in production</p>
-              <p className="text-sm text-gray-500">For demo purposes, properties will use stock images</p>
             </div>
           </div>
 
